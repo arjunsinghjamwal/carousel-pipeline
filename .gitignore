@@ -1,0 +1,43 @@
+# dependencies
+node_modules/
+npm-debug.log*
+
+# secrets
+.env
+.env.local
+.env.*.local
+
+# user's brand config — never committed; only config.example/ ships
+config/
+
+# generated pipeline output
+drafts/
+queue/pending/
+queue/approved/
+queue/rejected/
+queue/failed/
+
+# database
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# build & cache
+dist/
+build/
+.cache/
+.tsbuildinfo
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# editors
+.vscode/
+.idea/
+*.swp
+
+# Puppeteer downloads
+.local-chromium/

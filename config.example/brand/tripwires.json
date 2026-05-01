@@ -1,0 +1,40 @@
+{
+  "$schema": "../../docs/schemas/tripwires.schema.json",
+  "_comment": "Phrases the tripwire checker bans from generated copy. Each entry is matched against every slide body and the caption. A single match fails the run. Replace these placeholder categories with categories that fit your domain.",
+
+  "version": "1.0.0",
+
+  "categories": [
+    {
+      "id": "example_category_1",
+      "description": "Replace this category. Common examples: unattributed health claims, financial guarantees, age-targeted marketing language, regulated-product claims (alcohol, supplements, medical devices).",
+      "rationale": "Why this category exists — what real-world risk you're avoiding. The review UI shows this rationale when a tripwire fires, so write it for your future self.",
+      "phrases": [
+        {
+          "match": "literal",
+          "value": "example banned phrase"
+        },
+        {
+          "match": "regex",
+          "value": "\\b(another|alternate)\\s+pattern\\b",
+          "flags": "i"
+        }
+      ]
+    },
+    {
+      "id": "example_category_2",
+      "description": "A second category, demonstrating how to group related bans.",
+      "rationale": "Different rationale for a different risk.",
+      "phrases": [
+        {
+          "match": "literal",
+          "value": "yet another banned phrase"
+        }
+      ]
+    }
+  ],
+
+  "_match_types_comment": "Each phrase has a 'match' field: 'literal' for exact substring (case-insensitive by default), or 'regex' for pattern matching with optional 'flags'. The checker is intentionally aggressive — false positives are cheap, false negatives are expensive.",
+
+  "_seeding_comment": "When seeding this file, write the rationale BEFORE the phrases. If you can't articulate why a phrase is banned, you'll struggle to defend the ban later, and you'll be tempted to remove it the first time it fires on copy you wanted to ship."
+}

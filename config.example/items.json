@@ -1,0 +1,39 @@
+{
+  "$schema": "../docs/schemas/items.schema.json",
+  "_comment": "Source items the pipeline draws from. Each item produces exactly one carousel. The schema is intentionally minimal so it can carry research findings, product specs, recipes, statistics, anything structured.",
+
+  "version": "1.0.0",
+  "items": [
+    {
+      "id": "item-001",
+      "number": 1,
+      "raw_content": "VERBATIM source text as it came from the original document. Never edited after seed. This is the audit trail.",
+      "sanitized_content": "Sanitized version. Attributed, past tense, brand-safe. Claude only ever sees this version.",
+      "attribution": "Author et al., Publication Year",
+      "source_url": "https://example.com/source",
+      "tags": ["topic-1", "topic-2"],
+      "template": "default",
+      "status": "unused",
+      "date_added": "2026-01-01",
+      "notes": "Optional free-text field. Useful for context that doesn't belong in any other field."
+    },
+    {
+      "id": "item-002",
+      "number": 2,
+      "raw_content": "Another raw source, e.g. 'Recent industry survey shows 64% of customers prefer X over Y'.",
+      "sanitized_content": "A 2025 industry survey of [N] respondents reported 64% preference for X over Y, with margin of error +/- 3%.",
+      "attribution": "Industry Survey Body, 2025",
+      "source_url": "https://example.com/survey",
+      "tags": ["consumer-behavior", "survey"],
+      "template": "default",
+      "status": "unused",
+      "date_added": "2026-01-02"
+    }
+  ],
+
+  "_status_values_comment": "status enum: 'unused' | 'drafted' | 'approved' | 'published' | 'retired'. The pipeline updates this field automatically as items move through the stages. 'retired' is set manually when a source is invalidated and should not be reused.",
+
+  "_id_comment": "IDs are stable forever. Once an item exists with id 'item-007', that ID is never reused — even if the item is retired.",
+
+  "_template_comment": "Must reference a file in config/templates/. The default template is 'default'. Add 'comparison', 'narrative', etc. as needed by creating new template files."
+}
