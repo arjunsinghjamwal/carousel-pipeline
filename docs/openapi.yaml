@@ -1,0 +1,761 @@
+openapi: "3.1.0"
+
+info:
+  title: Carousel Pipeline API
+  version: "1.0.0"
+  description: |
+    HTTP API for the carousel-pipeline review server.
+
+    Two route groups:
+
+    **Review API (`/queue/*`)** — human-facing endpoints for inspecting, editing,
+    approving, and rejecting generated carousel drafts. These endpoints are
+    intentionally NOT accessible to agents.
+
+    **Agent API (`/agent/*`)** — machine-facing endpoints for configuring the
+    pipeline, adding source items, triggering generation, and polling status.
+    Agents stop at `draft_ready: true`; they have no access to approve/reject.
+
+    Full design spec: [docs/SPEC.md](./SPEC.md)
+    Configuration reference: [docs/CONFIGURATION.md](./CONFIGURATION.md)
+
+servers:
+  - url: http://localhost:3000
+    description: Local review server (default port; override with REVIEW_PORT)
+
+tags:
+  - name: review
+    description: Human review endpoints — approve, reject, edit drafts
+  - name: agent
+    description: Agent-facing endpoints — configure, add items, trigger pipeline, poll status
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+
+paths:
+
+  # ---------- Review API ----------
+
+  /queue:
+    get:
+      tags: [review]
+      summary: List all pending drafts
+      description: Returns metadata for every item in the `drafts/` directory that has a `metadata.json` sidecar.
+      operationId: listQueue
+      responses:
+        "200":
+          description: Array of pending draft summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DraftSummary"
+
+  /queue/{item_id}:
+    get:
+      tags: [review]
+      summary: Get draft detail
+      description: Returns full slides JSON and metadata for a specific draft.
+      operationId: getDraft
+      parameters:
+        - $ref: "#/components/parameters/item_id"
+      responses:
+        "200":
+          description: Draft detail with slides and metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /queue/{item_id}/slides/{filename}:
+    get:
+      tags: [review]
+      summary: Serve a composed slide PNG
+      description: Returns the composed 1080×1350 PNG for a specific slide. Filename format is `slide-N.png`.
+      operationId: getSlideImage
+      parameters:
+        - $ref: "#/components/parameters/item_id"
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^slide-\\d+\\.png$"
+          description: Slide filename (e.g. `slide-1.png`)
+      responses:
+        "200":
+          description: PNG image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /queue/{item_id}/slide/{index}:
+    patch:
+      tags: [review]
+      summary: Edit a slide's copy
+      description: |
+        Updates one or more text fields on a single slide. Writes the updated
+        `slides.json` to disk. Re-run Stage 3 (composition) after editing to
+        regenerate the PNG.
+      operationId: editSlide
+      parameters:
+        - $ref: "#/components/parameters/item_id"
+        - name: index
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: 1-based slide index
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditSlideBody"
+      responses:
+        "200":
+          description: Slide updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /queue/{item_id}/approve:
+    post:
+      tags: [review]
+      summary: Approve a draft
+      description: |
+        Marks the draft as approved by writing `approved.json` into the draft
+        directory. The draft is then eligible for `npm run push-approved`.
+
+        **Human-only endpoint.** Not accessible via the `/agent/*` prefix.
+      operationId: approveDraft
+      parameters:
+        - $ref: "#/components/parameters/item_id"
+      responses:
+        "200":
+          description: Draft approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkItemResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /queue/{item_id}/reject:
+    post:
+      tags: [review]
+      summary: Reject a draft
+      description: |
+        Marks the draft as rejected by writing `rejected.json` with a reason
+        into the draft directory.
+
+        **Human-only endpoint.** Not accessible via the `/agent/*` prefix.
+      operationId: rejectDraft
+      parameters:
+        - $ref: "#/components/parameters/item_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectBody"
+      responses:
+        "200":
+          description: Draft rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkItemResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ---------- Agent API ----------
+
+  /agent/configure:
+    post:
+      tags: [agent]
+      summary: Bootstrap brand config and initialise DB
+      description: |
+        Writes `config/brand/copy.json` and/or `config/brand/tokens.json` from
+        the request body, then runs `scripts/init-db.ts` to create the SQLite
+        schema (idempotent — safe to call multiple times).
+
+        Both body fields are optional so you can update one config file without
+        overwriting the other.
+      operationId: agentConfigure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigureBody"
+      responses:
+        "200":
+          description: Configuration written and DB initialised
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          description: DB initialisation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /agent/items:
+    post:
+      tags: [agent]
+      summary: Add a source item
+      description: |
+        Appends a new item to `config/items.json`. The `id`, `status`, and
+        `date_added` fields are auto-assigned — do not include them in the body.
+
+        The ID is assigned as `item-NNN` where NNN is zero-padded and
+        increments from the current item count.
+      operationId: agentAddItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewItemBody"
+      responses:
+        "201":
+          description: Item added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddItemResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+    get:
+      tags: [agent]
+      summary: List all source items
+      description: Returns the full contents of `config/items.json`.
+      operationId: agentListItems
+      responses:
+        "200":
+          description: Item bank
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourceItem"
+
+  /agent/items/{item_id}:
+    get:
+      tags: [agent]
+      summary: Get a single source item
+      operationId: agentGetItem
+      parameters:
+        - $ref: "#/components/parameters/item_id"
+      responses:
+        "200":
+          description: Source item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceItem"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /agent/generate:
+    post:
+      tags: [agent]
+      summary: Trigger pipeline generation
+      description: |
+        Spawns `scripts/run-pipeline.ts` as a non-blocking subprocess.
+        Returns `202 Accepted` immediately — poll `GET /agent/status/:item_id`
+        to check progress.
+
+        Provide either `item_id` (single item) or `batch: true` (all unused
+        items). Only one run per target is allowed at a time — a second request
+        for the same `item_id` while a run is active returns `409 Conflict`.
+      operationId: agentGenerate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateBody"
+      responses:
+        "202":
+          description: Pipeline subprocess spawned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Pipeline already running for this target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /agent/status/{item_id}:
+    get:
+      tags: [agent]
+      summary: Poll generation status
+      description: |
+        Queries the `generation_runs` table for the last 10 runs for this item.
+        `draft_ready: true` means Stage 3 (compose) completed successfully —
+        the agent's job is done; a human must approve via the review UI.
+      operationId: agentGetStatus
+      parameters:
+        - $ref: "#/components/parameters/item_id"
+      responses:
+        "200":
+          description: Status report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+# ---------------------------------------------------------------------------
+# Components
+# ---------------------------------------------------------------------------
+
+components:
+
+  parameters:
+    item_id:
+      name: item_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^item-\\d{3,}$"
+      description: Item ID (e.g. `item-007`)
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BadRequest:
+      description: Invalid request body or parameters
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+
+    # ---- Shared primitives ----
+
+    OkResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+
+    OkItemResponse:
+      type: object
+      required: [ok, item_id]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        item_id:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          description: Error message or Zod flatten object
+
+    # ---- Review schemas ----
+
+    DraftSummary:
+      type: object
+      required: [item_id, created_at, tripwire_passed]
+      properties:
+        item_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        tripwire_passed:
+          type: boolean
+
+    DraftDetail:
+      type: object
+      required: [slides, metadata]
+      properties:
+        slides:
+          $ref: "#/components/schemas/SlideDraft"
+        metadata:
+          $ref: "#/components/schemas/Metadata"
+
+    EditSlideBody:
+      type: object
+      description: All fields optional — only provided fields are updated
+      properties:
+        headline:
+          type: string
+          description: "8 words or fewer"
+        body:
+          type: string
+          description: "30 words or fewer"
+        highlight_word:
+          type: string
+          description: Single word rendered in accent color
+
+    RejectBody:
+      type: object
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          minLength: 1
+
+    # ---- Agent schemas ----
+
+    ConfigureBody:
+      type: object
+      description: Both fields optional — omit a field to leave that config file unchanged
+      properties:
+        brand_copy:
+          $ref: "#/components/schemas/BrandCopy"
+        brand_tokens:
+          $ref: "#/components/schemas/BrandTokens"
+
+    NewItemBody:
+      type: object
+      required: [number, raw_content, sanitized_content, attribution, source_url]
+      description: "Do NOT include id, status, or date_added — these are auto-assigned."
+      properties:
+        number:
+          type: integer
+          minimum: 1
+        raw_content:
+          type: string
+          minLength: 1
+          description: Verbatim source text. Never edited after seed.
+        sanitized_content:
+          type: string
+          minLength: 1
+          description: Brand-safe rewrite. Must attribute claims to source in past tense.
+        attribution:
+          type: string
+          minLength: 1
+          description: Full citation as it will appear on the source slide.
+        source_url:
+          type: string
+          format: uri
+        tags:
+          type: array
+          items:
+            type: string
+          default: []
+        template:
+          type: string
+          default: "default"
+          description: Template ID — must match a file in config/templates/
+        notes:
+          type: string
+
+    AddItemResponse:
+      type: object
+      required: [ok, item_id]
+      properties:
+        ok:
+          type: boolean
+          enum: [true]
+        item_id:
+          type: string
+          pattern: "^item-\\d{3,}$"
+
+    GenerateBody:
+      type: object
+      description: Provide either item_id (single run) or batch:true (all unused items)
+      properties:
+        item_id:
+          type: string
+          pattern: "^item-\\d{3,}$"
+        batch:
+          type: boolean
+
+    GenerateResponse:
+      type: object
+      required: [accepted]
+      properties:
+        accepted:
+          type: boolean
+          enum: [true]
+        item_id:
+          type: string
+          nullable: true
+          description: The item_id that was queued, or null for batch runs
+
+    StatusResponse:
+      type: object
+      required: [item_id, draft_ready, runs]
+      properties:
+        item_id:
+          type: string
+        draft_ready:
+          type: boolean
+          description: "true when stage='compose' and status='completed' exists in runs"
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/GenerationRun"
+
+    GenerationRun:
+      type: object
+      required: [stage, status, started_at]
+      properties:
+        stage:
+          type: string
+          enum: [content, images, compose]
+        status:
+          type: string
+          enum: [started, completed, failed]
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        error_message:
+          type: string
+          nullable: true
+
+    # ---- Core domain schemas ----
+
+    SourceItem:
+      type: object
+      required: [id, number, raw_content, sanitized_content, attribution, source_url, status, date_added]
+      properties:
+        id:
+          type: string
+          pattern: "^item-\\d{3,}$"
+        number:
+          type: integer
+        raw_content:
+          type: string
+        sanitized_content:
+          type: string
+        attribution:
+          type: string
+        source_url:
+          type: string
+          format: uri
+        tags:
+          type: array
+          items:
+            type: string
+        template:
+          type: string
+          default: "default"
+        status:
+          type: string
+          enum: [unused, drafted, approved, published, retired]
+        date_added:
+          type: string
+          format: date
+        notes:
+          type: string
+
+    SlideDraft:
+      type: object
+      required: [item_id, template_id, created_at, model, slides, caption, hashtags, cta, attribution, source_url]
+      properties:
+        item_id:
+          type: string
+        template_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        model:
+          type: string
+        slides:
+          type: array
+          items:
+            $ref: "#/components/schemas/Slide"
+          minItems: 10
+          maxItems: 10
+        caption:
+          type: string
+          maxLength: 2200
+        hashtags:
+          type: array
+          items:
+            type: string
+          minItems: 3
+          maxItems: 5
+        cta:
+          type: string
+          pattern: "^[A-Z]+$"
+        attribution:
+          type: string
+        source_url:
+          type: string
+          format: uri
+
+    Slide:
+      type: object
+      required: [index, role, headline, body, image_prompt]
+      properties:
+        index:
+          type: integer
+          minimum: 1
+        role:
+          type: string
+          enum: [hook, setup, evidence, context, takeaway, source, cta]
+        headline:
+          type: string
+          description: "8 words or fewer"
+        body:
+          type: string
+          description: "30 words or fewer"
+        highlight_word:
+          type: string
+          description: Optional — one word rendered in accent color
+        image_prompt:
+          type: string
+          minLength: 10
+          description: "Prompt for Gemini image generation. Must not request text in the image."
+
+    Metadata:
+      type: object
+      required: [item_id, created_at, pipeline_version, generation_attempts, tripwire_checks, hash]
+      properties:
+        item_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        pipeline_version:
+          type: string
+        generation_attempts:
+          type: integer
+          minimum: 1
+        tripwire_checks:
+          type: object
+          required: [passed, violations]
+          properties:
+            passed:
+              type: boolean
+            violations:
+              type: array
+              items:
+                $ref: "#/components/schemas/TripwireViolation"
+        hash:
+          type: string
+          pattern: "^[a-f0-9]{64}$"
+
+    TripwireViolation:
+      type: object
+      required: [category_id, phrase, in_caption]
+      properties:
+        category_id:
+          type: string
+        phrase:
+          type: string
+        slide_index:
+          type: integer
+          nullable: true
+        in_caption:
+          type: boolean
+
+    BrandCopy:
+      type: object
+      required: [brand_name, tagline, hero_line, cta_keywords]
+      properties:
+        brand_name:
+          type: string
+        tagline:
+          type: string
+        hero_line:
+          type: string
+        cta_keywords:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        default_handle:
+          type: string
+        default_hashtags:
+          type: array
+          items:
+            type: string
+          default: []
+
+    BrandTokens:
+      type: object
+      required: [colors, typography, slide_dimensions, carousel]
+      properties:
+        colors:
+          type: object
+          additionalProperties:
+            type: string
+          description: "Color name → CSS color value (hex, rgb, hsl)"
+        color_usage_ratio:
+          type: object
+          additionalProperties:
+            type: number
+        typography:
+          type: object
+          additionalProperties:
+            type: object
+            required: [family]
+            properties:
+              family:
+                type: string
+              weight:
+                type: integer
+              fallback:
+                type: string
+        slide_dimensions:
+          type: object
+          required: [width, height]
+          properties:
+            width:
+              type: integer
+              description: "Pixels. Default 1080 (Instagram 4:5)."
+            height:
+              type: integer
+              description: "Pixels. Default 1350 (Instagram 4:5)."
+        carousel:
+          type: object
+          required: [slide_count]
+          properties:
+            slide_count:
+              type: integer
+              minimum: 2
+              maximum: 20
+              description: "Number of slides per carousel. Default 10."

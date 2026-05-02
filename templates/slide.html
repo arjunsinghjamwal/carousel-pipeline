@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080" />
+  <style>
+    :root { {{CSS_VARS}} }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 1080px;
+      height: 1350px;
+      overflow: hidden;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      position: relative;
+      background-color: var(--color-background);
+      color: var(--color-text);
+    }
+
+    /* ── Background image layer ────────────────────────────────────── */
+    .bg-image {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0.12;
+      z-index: 0;
+    }
+
+    /* ── Content layer ─────────────────────────────────────────────── */
+    .slide-content {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 80px 90px;
+      gap: 32px;
+    }
+
+    /* ── Typography ────────────────────────────────────────────────── */
+    .brand-name {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+    }
+
+    .headline {
+      font-size: 72px;
+      font-weight: 700;
+      line-height: 1.1;
+      text-align: center;
+      color: var(--color-text);
+    }
+
+    .body-text {
+      font-size: 36px;
+      font-weight: 400;
+      line-height: 1.5;
+      text-align: center;
+      color: var(--color-text);
+      max-width: 860px;
+    }
+
+    .tagline {
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--color-muted);
+    }
+
+    .highlight-word {
+      color: var(--color-accent);
+      font-size: 44px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .highlight-word:empty {
+      display: none;
+    }
+
+    /* ── Role: hook ────────────────────────────────────────────────── */
+    body[data-role="hook"] {
+      background-color: var(--color-primary);
+      color: var(--color-background);
+    }
+
+    body[data-role="hook"] .slide-content {
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    body[data-role="hook"] .brand-name {
+      color: var(--color-accent);
+      align-self: flex-start;
+    }
+
+    body[data-role="hook"] .headline {
+      font-size: 84px;
+      text-align: left;
+      color: var(--color-background);
+      margin-top: auto;
+    }
+
+    body[data-role="hook"] .body-text {
+      text-align: left;
+      color: var(--color-muted);
+      font-size: 32px;
+      align-self: flex-start;
+    }
+
+    body[data-role="hook"] .bg-image {
+      opacity: 0.06;
+    }
+
+    /* ── Role: setup ───────────────────────────────────────────────── */
+    body[data-role="setup"] .headline {
+      font-size: 68px;
+    }
+
+    /* ── Role: evidence ────────────────────────────────────────────── */
+    body[data-role="evidence"] .bg-image {
+      opacity: 0.12;
+    }
+
+    body[data-role="evidence"] .headline {
+      font-size: 80px;
+      font-weight: 700;
+    }
+
+    /* ── Role: context ─────────────────────────────────────────────── */
+    body[data-role="context"] .headline {
+      font-size: 60px;
+    }
+
+    body[data-role="context"] .body-text {
+      font-size: 34px;
+    }
+
+    /* ── Role: takeaway ────────────────────────────────────────────── */
+    body[data-role="takeaway"] .headline {
+      font-size: 68px;
+    }
+
+    /* ── Role: source ──────────────────────────────────────────────── */
+    body[data-role="source"] {
+      background-color: var(--color-muted);
+    }
+
+    body[data-role="source"] .bg-image {
+      display: none;
+    }
+
+    body[data-role="source"] .slide-content {
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    body[data-role="source"] .headline {
+      font-size: 40px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      text-align: left;
+      color: var(--color-primary);
+    }
+
+    body[data-role="source"] .body-text {
+      font-size: 30px;
+      text-align: left;
+      color: var(--color-text);
+      border-left: 6px solid var(--color-accent);
+      padding-left: 32px;
+      font-family: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+      line-height: 1.6;
+    }
+
+    /* ── Role: cta ─────────────────────────────────────────────────── */
+    body[data-role="cta"] {
+      background-color: var(--color-accent);
+      color: var(--color-background);
+    }
+
+    body[data-role="cta"] .bg-image {
+      opacity: 0.08;
+    }
+
+    body[data-role="cta"] .slide-content {
+      justify-content: center;
+      align-items: center;
+      gap: 40px;
+    }
+
+    body[data-role="cta"] .brand-name {
+      color: var(--color-background);
+      opacity: 0.7;
+    }
+
+    body[data-role="cta"] .headline {
+      color: var(--color-background);
+      font-size: 76px;
+      text-align: center;
+    }
+
+    body[data-role="cta"] .body-text {
+      color: var(--color-background);
+      opacity: 0.85;
+      font-size: 34px;
+    }
+
+    body[data-role="cta"] .tagline {
+      color: var(--color-background);
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body data-role="{{SLIDE_ROLE}}" data-index="{{SLIDE_INDEX}}">
+  <div class="bg-image" style="background-image: url('{{IMAGE_URL}}')"></div>
+  <div class="slide-content">
+    <span class="brand-name">{{BRAND_NAME}}</span>
+    <h1 class="headline">{{HEADLINE}}</h1>
+    <span class="highlight-word">{{HIGHLIGHT_WORD}}</span>
+    <p class="body-text">{{BODY}}</p>
+    <span class="tagline">{{TAGLINE}}</span>
+  </div>
+</body>
+</html>

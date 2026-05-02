@@ -46,6 +46,26 @@ See [docs/SPEC.md](./docs/SPEC.md) for the full design — schemas, retry policy
 
 ---
 
+## Try the demo (no API keys required)
+
+See the pipeline produce real composed slides without any API credentials:
+
+```bash
+npm install
+cp -r config.example config   # use the bundled example brand config
+npm run demo                  # runs all three stages with mock content
+npm run review                # open localhost:3000 to see the result
+```
+
+This bypasses Claude (Stage 1) and Gemini (Stage 2) entirely — slides are composed from
+hardcoded demo copy using your brand template and Puppeteer (Stage 3). No API keys needed.
+Output appears in `drafts/item-001/slides/` as real 1080×1350 PNG files you can inspect.
+
+From the review UI at `localhost:3000` you can see the full approve/reject/edit flow.
+When you're ready to use real content, follow the [Quick start](#quick-start) below.
+
+---
+
 ## Quick start
 
 ```bash
@@ -70,6 +90,17 @@ npm run pipeline -- --item item-001 --dry-run
 # 6. Open the review UI
 npm run review
 # → localhost:3000
+
+# 7. Publish approved carousels to Buffer
+#
+# BEFORE running this step, you must implement getMediaUrls() in
+# scripts/push-approved.ts. Buffer cannot accept file uploads — it fetches
+# media from public URLs at publish time. The function currently throws with
+# a clear error. Replace it with your own upload logic (S3, GCS, R2, CDN, etc.)
+# and return the public URLs for each slide PNG.
+#
+# This is the only part of the pipeline that requires user-written code.
+npm run push-approved
 ```
 
 You will not get publishable output on the first run. The brand voice, prompt, and tripwires need iteration.
@@ -100,9 +131,11 @@ See [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) for the configuration schem
 
 ## What's actually implemented vs. designed
 
-The original v0.1 codebase implemented stages 1 and 3 (content generation and a slide template) and the tripwire checker. Stages 2 (images), 4 (review), 5 (publish), and 6 (metrics) were designed in the spec but not built.
+All six stages are implemented. There is one deliberate stub: `getMediaUrls()` in `scripts/push-approved.ts`.
 
-When you fork this, you are forking the design and the partial implementation. You will need to finish at least the composition stage to get usable PNG output. Image generation and Buffer publishing are optional — many users will swap them for whatever they prefer (manual design, Later, manual posting, etc.).
+**Why it's a stub:** Buffer's API requires public URLs for carousel images — it fetches them from the internet at publish time. The pipeline produces PNGs on your local disk (`drafts/{item_id}/slides/*.png`). Getting those files onto a publicly accessible host is infrastructure-specific: the right answer is S3 for some users, GCS for others, Cloudflare R2 for others. Adding any cloud SDK as a hard dependency would force that choice on everyone. Instead, the function is a clearly labelled stub with an example showing exactly what to return. You write ~10 lines, the rest of the publish flow works.
+
+**Everything else is fully implemented:** content generation (Stage 1), image generation (Stage 2), slide composition (Stage 3), the browser-based review UI (Stage 4), Buffer scheduling (Stage 5, minus the URL stub), and Meta Graph metrics polling (Stage 6).
 
 The repository's CI runs unit and integration tests for what was built. It does not run end-to-end tests against live APIs.
 

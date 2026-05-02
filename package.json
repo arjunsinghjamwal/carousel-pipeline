@@ -1,0 +1,46 @@
+{
+  "name": "carousel-pipeline",
+  "version": "1.0.0",
+  "description": "Automated pipeline for turning a structured source-item bank into brand-safe Instagram carousels.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "setup": "tsx scripts/setup.ts",
+    "db:init": "tsx scripts/init-db.ts",
+    "items:seed": "tsx scripts/seed-items.ts",
+    "pipeline": "tsx scripts/run-pipeline.ts",
+    "pipeline:daily": "tsx scripts/run-pipeline.ts --batch",
+    "demo": "npm run db:init && tsx scripts/run-pipeline.ts --item item-001 --mock",
+    "review": "tsx src/review/server.ts",
+    "agent": "tsx src/review/server.ts",
+    "push-approved": "tsx scripts/push-approved.ts",
+    "metrics:refresh": "tsx src/metrics/poll-insights.ts",
+    "test": "node --test --import tsx/esm tests/*.test.ts",
+    "test:e2e": "tsx scripts/run-pipeline.ts --dry-run --item item-001",
+    "lint": "eslint 'src/**/*.ts' 'scripts/**/*.ts' 'tests/**/*.ts'",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.37.0",
+    "@google/genai": "^0.7.0",
+    "better-sqlite3": "^11.0.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.27.0",
+    "pino": "^9.2.0",
+    "puppeteer": "^22.9.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.10",
+    "@types/node": "^20.14.9",
+    "pino-pretty": "^11.2.1",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.6.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}

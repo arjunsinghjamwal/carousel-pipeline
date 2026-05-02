@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carousel Review</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-w: 280px;
+      --bg: #f7f7f8;
+      --surface: #ffffff;
+      --border: #e2e2e5;
+      --text: #1a1a1f;
+      --muted: #6b7280;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --success: #16a34a;
+      --warn-bg: #fef3c7;
+      --warn-text: #92400e;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--bg);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ---- Sidebar ---- */
+    #sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    #sidebar-header h1 { font-size: 15px; font-weight: 600; }
+
+    #refresh-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    #refresh-btn:hover { background: var(--bg); }
+
+    #queue-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .queue-empty {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .queue-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .queue-item:hover { background: var(--bg); }
+    .queue-item.active { background: #eef2ff; border-left: 3px solid var(--accent); }
+
+    .queue-item-id {
+      font-weight: 600;
+      font-size: 13px;
+      font-family: ui-monospace, monospace;
+    }
+
+    .queue-item-meta {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .queue-item-date { font-size: 11px; color: var(--muted); }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .badge-pass { background: #dcfce7; color: #166534; }
+    .badge-fail { background: #fee2e2; color: #991b1b; }
+
+    #sidebar-footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ---- Main panel ---- */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #main-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    /* ---- Draft header ---- */
+    #draft-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    #draft-header-info { flex: 1; min-width: 0; }
+    #draft-item-id { font-size: 17px; font-weight: 700; font-family: ui-monospace, monospace; }
+    #draft-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+    #draft-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.1s, opacity 0.1s;
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-approve { background: var(--success); color: #fff; }
+    .btn-approve:hover:not(:disabled) { background: #15803d; }
+
+    .btn-reject { background: var(--danger); color: #fff; }
+    .btn-reject:hover:not(:disabled) { background: var(--danger-hover); }
+
+    /* ---- Tripwire banner ---- */
+    #tripwire-banner {
+      margin: 16px 24px 0;
+      background: var(--warn-bg);
+      border: 1px solid #fcd34d;
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--warn-text);
+    }
+    #tripwire-banner strong { display: block; margin-bottom: 4px; }
+    #tripwire-banner ul { padding-left: 16px; }
+
+    /* ---- Caption / hashtags ---- */
+    #caption-section {
+      margin: 16px 24px 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+    #caption-section h3 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+    #caption-text { font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+    #hashtags { margin-top: 8px; font-size: 12px; color: var(--accent); }
+
+    /* ---- Slides grid ---- */
+    #slides-section {
+      padding: 16px 24px 32px;
+    }
+
+    #slides-section h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 12px;
+    }
+
+    #slides-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .slide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .slide-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .slide-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      font-family: ui-monospace, monospace;
+      width: 28px;
+    }
+
+    .role-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+    .role-hook    { background: #1e1b4b; color: #e0e7ff; }
+    .role-cta     { background: #4f46e5; color: #fff; }
+    .role-source  { background: #f3f4f6; color: #374151; }
+    .role-evidence { background: #ecfdf5; color: #065f46; }
+    .role-takeaway { background: #fff7ed; color: #9a3412; }
+
+    .slide-img {
+      width: 100%;
+      aspect-ratio: 1080/1350;
+      object-fit: cover;
+      background: var(--bg);
+      display: block;
+    }
+    .slide-img-placeholder {
+      width: 100%;
+      aspect-ratio: 1080/1350;
+      background: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .slide-fields { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+    .field-row { display: flex; flex-direction: column; gap: 2px; }
+
+    .field-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--muted);
+    }
+
+    .field-value {
+      font-size: 13px;
+      line-height: 1.4;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: border-color 0.1s, background 0.1s;
+      min-height: 28px;
+    }
+    .field-value:hover { background: var(--bg); border-color: var(--border); }
+    .field-value.highlight { font-weight: 600; color: var(--accent); }
+    .field-value.empty { color: var(--muted); font-style: italic; }
+
+    .field-editing {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field-editing.active { display: flex; }
+    .field-editing textarea, .field-editing input {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 6px 8px;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      resize: vertical;
+      outline: none;
+      width: 100%;
+      line-height: 1.4;
+    }
+    .field-editing-actions { display: flex; gap: 6px; }
+    .btn-save {
+      background: var(--accent);
+      color: #fff;
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    .btn-save:hover { background: var(--accent-hover); }
+    .btn-cancel-edit {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    .btn-cancel-edit:hover { background: var(--bg); }
+
+    /* ---- Toast ---- */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,.15);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: var(--success); }
+    #toast.error   { background: var(--danger); }
+    #toast.info    { background: #374151; }
+
+    /* ---- Loading spinner ---- */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h1>Carousel Review</h1>
+    <button id="refresh-btn" title="Refresh queue">Refresh</button>
+  </div>
+  <div id="queue-list">
+    <div class="queue-empty">Loading…</div>
+  </div>
+  <div id="sidebar-footer">Auto-refreshes every 30s</div>
+</aside>
+
+<!-- Main panel -->
+<main id="main">
+  <div id="main-empty">Select a draft from the queue</div>
+
+  <!-- Draft content (hidden until a draft is selected) -->
+  <div id="draft-content" style="display:none; flex-direction:column; flex:1;">
+    <div id="draft-header">
+      <div id="draft-header-info">
+        <div id="draft-item-id"></div>
+        <div id="draft-meta"></div>
+      </div>
+      <div id="draft-actions">
+        <button class="btn btn-approve" id="approve-btn">Approve</button>
+        <button class="btn btn-reject"  id="reject-btn">Reject</button>
+      </div>
+    </div>
+
+    <div id="tripwire-banner" style="display:none;">
+      <strong>Tripwire violations detected</strong>
+      <ul id="tripwire-list"></ul>
+    </div>
+
+    <div id="caption-section">
+      <h3>Caption &amp; Hashtags</h3>
+      <div id="caption-text"></div>
+      <div id="hashtags"></div>
+    </div>
+
+    <div id="slides-section">
+      <h3>Slides</h3>
+      <div id="slides-grid"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<script>
+  // ---- State ----
+  let currentItemId = null;
+  let currentDraft = null;
+  let refreshTimer = null;
+
+  // ---- Utilities ----
+  function toast(msg, type = 'info', duration = 3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `show ${type}`;
+    setTimeout(() => { el.className = ''; }, duration);
+  }
+
+  function fmt(isoStr) {
+    if (!isoStr) return '';
+    return new Date(isoStr).toLocaleString(undefined, {
+      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  async function api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    const res = await fetch(path, opts);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+    return json;
+  }
+
+  // ---- Queue ----
+  async function loadQueue() {
+    const list = document.getElementById('queue-list');
+    try {
+      const items = await api('GET', '/queue');
+      if (!items.length) {
+        list.innerHTML = '<div class="queue-empty">No pending drafts</div>';
+        return;
+      }
+      list.innerHTML = items.map(item => `
+        <div class="queue-item${item.item_id === currentItemId ? ' active' : ''}"
+             data-id="${item.item_id}">
+          <div class="queue-item-id">${item.item_id}</div>
+          <div class="queue-item-meta">
+            <span class="queue-item-date">${fmt(item.created_at)}</span>
+            <span class="badge ${item.tripwire_passed ? 'badge-pass' : 'badge-fail'}">
+              ${item.tripwire_passed ? 'clean' : 'tripwire'}
+            </span>
+          </div>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.queue-item').forEach(el => {
+        el.addEventListener('click', () => selectDraft(el.dataset.id));
+      });
+    } catch (e) {
+      list.innerHTML = `<div class="queue-empty" style="color:var(--danger)">Error: ${e.message}</div>`;
+    }
+  }
+
+  // ---- Draft detail ----
+  async function selectDraft(itemId) {
+    currentItemId = itemId;
+    // Highlight active item in sidebar
+    document.querySelectorAll('.queue-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.id === itemId);
+    });
+
+    document.getElementById('main-empty').style.display = 'none';
+    const content = document.getElementById('draft-content');
+    content.style.display = 'flex';
+
+    document.getElementById('draft-item-id').textContent = itemId;
+    document.getElementById('draft-meta').textContent = 'Loading…';
+    document.getElementById('slides-grid').innerHTML = '';
+    document.getElementById('tripwire-banner').style.display = 'none';
+
+    try {
+      const { slides, metadata } = await api('GET', `/queue/${itemId}`);
+      currentDraft = { slides, metadata };
+      renderDraft(slides, metadata);
+    } catch (e) {
+      document.getElementById('draft-meta').textContent = `Error: ${e.message}`;
+      toast(`Failed to load draft: ${e.message}`, 'error');
+    }
+  }
+
+  function renderDraft(slides, metadata) {
+    // Header
+    document.getElementById('draft-item-id').textContent = metadata.item_id;
+    document.getElementById('draft-meta').textContent =
+      `${fmt(metadata.created_at)} · v${metadata.pipeline_version} · ${metadata.generation_attempts} attempt(s)`;
+
+    // Tripwire
+    const banner = document.getElementById('tripwire-banner');
+    if (!metadata.tripwire_checks.passed) {
+      banner.style.display = 'block';
+      const ul = document.getElementById('tripwire-list');
+      ul.innerHTML = metadata.tripwire_checks.violations.map(v => {
+        const loc = v.in_caption ? 'caption' : `slide ${v.slide_index}`;
+        return `<li><strong>${v.category_id}</strong>: "${v.phrase}" in ${loc}</li>`;
+      }).join('');
+    } else {
+      banner.style.display = 'none';
+    }
+
+    // Caption
+    document.getElementById('caption-text').textContent = slides.caption ?? '';
+    const tags = (slides.hashtags ?? []).join(' ');
+    document.getElementById('hashtags').textContent = tags;
+
+    // Slides
+    const grid = document.getElementById('slides-grid');
+    grid.innerHTML = '';
+    (slides.slides ?? []).forEach(slide => {
+      grid.appendChild(buildSlideCard(slide));
+    });
+  }
+
+  function buildSlideCard(slide) {
+    const card = document.createElement('div');
+    card.className = 'slide-card';
+    card.dataset.index = slide.index;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'slide-card-header';
+    header.innerHTML = `
+      <span class="slide-num">#${slide.index}</span>
+      <span class="badge role-badge role-${slide.role}">${slide.role}</span>
+    `;
+    card.appendChild(header);
+
+    // Image
+    const imgSrc = `/queue/${currentItemId}/slides/slide-${slide.index}.png`;
+    const img = document.createElement('img');
+    img.className = 'slide-img';
+    img.alt = `Slide ${slide.index}`;
+    img.onerror = function() {
+      this.replaceWith(Object.assign(document.createElement('div'), {
+        className: 'slide-img-placeholder',
+        textContent: 'Image not yet composed'
+      }));
+    };
+    img.src = imgSrc;
+    card.appendChild(img);
+
+    // Editable fields
+    const fields = document.createElement('div');
+    fields.className = 'slide-fields';
+
+    const editableFields = [
+      { key: 'headline', label: 'Headline', multiline: false },
+      { key: 'body',     label: 'Body',     multiline: true  },
+      { key: 'highlight_word', label: 'Highlight word', multiline: false },
+    ];
+
+    editableFields.forEach(({ key, label, multiline }) => {
+      const val = slide[key] ?? '';
+      const row = document.createElement('div');
+      row.className = 'field-row';
+      row.innerHTML = `<span class="field-label">${label}</span>`;
+
+      // Display value
+      const display = document.createElement('div');
+      display.className = 'field-value' + (key === 'highlight_word' ? ' highlight' : '') + (!val ? ' empty' : '');
+      display.textContent = val || '(empty)';
+      display.title = 'Click to edit';
+
+      // Edit UI
+      const editArea = document.createElement('div');
+      editArea.className = 'field-editing';
+      const input = multiline
+        ? Object.assign(document.createElement('textarea'), { rows: 3 })
+        : document.createElement('input');
+      input.value = val;
+      const actions = document.createElement('div');
+      actions.className = 'field-editing-actions';
+      const saveBtn   = Object.assign(document.createElement('button'), { textContent: 'Save', className: 'btn btn-save' });
+      const cancelBtn = Object.assign(document.createElement('button'), { textContent: 'Cancel', className: 'btn btn-cancel-edit' });
+      actions.append(saveBtn, cancelBtn);
+      editArea.append(input, actions);
+
+      // Toggle edit
+      display.addEventListener('click', () => {
+        display.style.display = 'none';
+        editArea.classList.add('active');
+        input.focus();
+      });
+
+      cancelBtn.addEventListener('click', () => {
+        input.value = slide[key] ?? '';
+        editArea.classList.remove('active');
+        display.style.display = '';
+      });
+
+      saveBtn.addEventListener('click', async () => {
+        const newVal = input.value.trim();
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner"></span>';
+        try {
+          await api('PATCH', `/queue/${currentItemId}/slide/${slide.index}`, { [key]: newVal });
+          slide[key] = newVal;
+          display.textContent = newVal || '(empty)';
+          display.classList.toggle('empty', !newVal);
+          editArea.classList.remove('active');
+          display.style.display = '';
+          toast('Slide updated', 'success');
+        } catch (e) {
+          toast(`Save failed: ${e.message}`, 'error');
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save';
+        }
+      });
+
+      row.append(display, editArea);
+      fields.appendChild(row);
+    });
+
+    card.appendChild(fields);
+    return card;
+  }
+
+  // ---- Approve / Reject ----
+  document.getElementById('approve-btn').addEventListener('click', async () => {
+    if (!currentItemId) return;
+    if (!confirm(`Approve ${currentItemId} for publishing?`)) return;
+    const btn = document.getElementById('approve-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Approving…';
+    try {
+      await api('POST', `/queue/${currentItemId}/approve`);
+      toast(`${currentItemId} approved`, 'success');
+      currentItemId = null;
+      document.getElementById('draft-content').style.display = 'none';
+      document.getElementById('main-empty').style.display = 'flex';
+      await loadQueue();
+    } catch (e) {
+      toast(`Approve failed: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Approve';
+    }
+  });
+
+  document.getElementById('reject-btn').addEventListener('click', async () => {
+    if (!currentItemId) return;
+    const reason = prompt(`Reason for rejecting ${currentItemId}:`);
+    if (!reason || !reason.trim()) return;
+    const btn = document.getElementById('reject-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Rejecting…';
+    try {
+      await api('POST', `/queue/${currentItemId}/reject`, { reason: reason.trim() });
+      toast(`${currentItemId} rejected`, 'info');
+      currentItemId = null;
+      document.getElementById('draft-content').style.display = 'none';
+      document.getElementById('main-empty').style.display = 'flex';
+      await loadQueue();
+    } catch (e) {
+      toast(`Reject failed: ${e.message}`, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Reject';
+    }
+  });
+
+  // ---- Refresh ----
+  document.getElementById('refresh-btn').addEventListener('click', loadQueue);
+
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(async () => {
+      await loadQueue();
+      scheduleRefresh();
+    }, 30000);
+  }
+
+  // ---- Init ----
+  loadQueue().then(scheduleRefresh);
+</script>
+</body>
+</html>
