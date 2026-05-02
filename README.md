@@ -22,7 +22,6 @@ The original use case was translating peer-reviewed health research into legally
 
 - **Not a hosted service.** You run it. You bring your API keys.
 - **Not maintained.** The original author published it for use, not for support. There is no roadmap, no issue tracker triage, and no guarantee of compatibility with future versions of the upstream APIs (Claude, Gemini, Buffer, Meta Graph). When those APIs change, this code will break, and you will fix it.
-- **Not a turnkey solution.** You will spend several hours configuring the brand layer, writing your prompt, populating your source bank, and tuning your tripwires before the pipeline produces anything you would publish.
 
 If you need a maintained, hosted equivalent, this is not it.
 
@@ -73,7 +72,7 @@ npm run review
 # → localhost:3000
 ```
 
-You will not get publishable output on the first run. The brand voice, prompt, and tripwires need iteration. Plan to spend a few hours on configuration before the output is acceptable.
+You will not get publishable output on the first run. The brand voice, prompt, and tripwires need iteration.
 
 ## Bringing your own brand
 
