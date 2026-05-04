@@ -1,0 +1,56 @@
+# docker-compose.yml
+#
+# Runs the full carousel-pipeline stack in containers.
+# Puppeteer's Chromium dependency stack is pre-configured in Dockerfile.
+#
+# Usage:
+#   docker compose up pipeline            # run the daily batch pipeline
+#   docker compose up review-ui           # start the review UI on localhost:3000
+#   docker compose up                     # start everything
+#   docker compose run pipeline npm run pipeline -- --item item-001
+#
+# Before starting:
+#   cp .env.example .env                  # fill in API keys
+#   cp -r config.example config           # copy the example brand config
+
+services:
+
+  # ── Pipeline service ──────────────────────────────────────────────────────
+  # Runs the generation pipeline. All npm run pipeline:* commands execute here.
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: carousel-pipeline:latest
+    env_file: .env
+    volumes:
+      - ./config:/app/config          # brand config (gitignored, user-supplied)
+      - ./drafts:/app/drafts          # generated output
+      - ./queue:/app/queue            # approval queue
+      - ./data:/app/data              # SQLite database
+    command: ["npm", "run", "pipeline:daily"]
+    # To run a single item instead:
+    #   docker compose run pipeline npm run pipeline -- --item item-001
+
+  # ── Review UI ─────────────────────────────────────────────────────────────
+  # Fastify server with the human review interface. Open http://localhost:3000
+  review-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: carousel-pipeline:latest
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config:/app/config
+      - ./drafts:/app/drafts
+      - ./queue:/app/queue
+      - ./data:/app/data
+    command: ["npm", "run", "review"]
+    environment:
+      - REVIEW_PORT=3000
+
+# All mounts are bind mounts so the host filesystem is the source of truth for
+# drafts, config, and the database — fully inspectable from the host without
+# needing docker exec.

@@ -218,7 +218,7 @@ fastify.post<{
 // ---- start server ----
 async function main() {
   await fastify.register(agentRoutes, { prefix: "/agent" });
-  const address = await fastify.listen({ port: PORT, host: "0.0.0.0" });
+  const address = await fastify.listen({ port: PORT, host: "127.0.0.1" });
   log.info({ address }, "review server listening");
 }
 

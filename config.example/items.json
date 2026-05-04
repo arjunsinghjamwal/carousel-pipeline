@@ -28,6 +28,19 @@
       "template": "default",
       "status": "unused",
       "date_added": "2026-01-02"
+    },
+    {
+      "id": "item-003",
+      "number": 3,
+      "raw_content": "NVIDIA Q4 FY2026 revenue hit $39.3B, up 69% YoY. Data Center segment alone was $35.6B, up 73% YoY. Gaming revenue was $2.5B. Q1 FY2027 guidance: $43B +/- 2%. CEO Jensen Huang: demand for Blackwell GPU infrastructure remains 'exceptional'. EPS (non-GAAP) $0.89 vs analyst consensus $0.85.",
+      "sanitized_content": "NVIDIA reported Q4 FY2026 revenue of $39.3 billion, a 69% year-over-year increase, per the company's February 2026 earnings release. The Data Center segment reported $35.6 billion in revenue, 73% year-over-year growth. Gaming segment revenue was $2.5 billion. The company provided Q1 FY2027 revenue guidance of approximately $43 billion. Non-GAAP EPS of $0.89 exceeded FactSet consensus estimates of $0.85.",
+      "attribution": "NVIDIA Corporation Q4 FY2026 Earnings Release, February 2026. FactSet consensus data.",
+      "source_url": "https://investor.nvidia.com/financial-information/quarterly-results/default.aspx",
+      "tags": ["semiconductor", "ai-infrastructure", "earnings", "data-center", "nvidia"],
+      "template": "data-scientist",
+      "status": "unused",
+      "date_added": "2026-02-26",
+      "notes": "Power demo item for financial analyst voice. Pair with config/brand/voice-analyst.md. Tripwire category 'financial_guarantees' is active — avoid any forward-looking phrasing beyond what the company itself stated in the earnings release."
     }
   ],
 

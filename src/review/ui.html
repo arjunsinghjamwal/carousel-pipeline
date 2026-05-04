@@ -563,7 +563,7 @@
     card.appendChild(header);
 
     // Image
-    const imgSrc = `/queue/${currentItemId}/slides/slide-${slide.index}.png`;
+    const imgSrc = `/queue/${currentItemId}/slides/slide-${String(slide.index).padStart(2, '0')}.png`;
     const img = document.createElement('img');
     img.className = 'slide-img';
     img.alt = `Slide ${slide.index}`;

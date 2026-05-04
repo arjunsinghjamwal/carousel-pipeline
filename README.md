@@ -1,8 +1,10 @@
 # carousel-pipeline
 
-> A pipeline for turning structured source material into brand-safe Instagram carousels using LLM-generated copy, AI-generated imagery, Puppeteer composition, and a human review queue. Pluggable for any brand, any source format.
+**v1.0 Stable | Active Architecture | Seeking Community Maintainers**
 
-**Status:** Open source, **unmaintained**. Released as-is under Apache 2.0. Issues and PRs will not be reviewed. Fork freely.
+> The industrial-grade framework for automated, brand-safe social media carousels — LLM-generated copy, AI-generated imagery, Puppeteer composition, and a human review gate. Pluggable for any brand, any source format.
+
+**License:** Apache 2.0 — use it, fork it, build on it. See [CONTRIBUTING.md](./CONTRIBUTING.md) if you want to help maintain it.
 
 ---
 
@@ -21,9 +23,9 @@ The original use case was translating peer-reviewed health research into legally
 ## What this is not
 
 - **Not a hosted service.** You run it. You bring your API keys.
-- **Not maintained.** The original author published it for use, not for support. There is no roadmap, no issue tracker triage, and no guarantee of compatibility with future versions of the upstream APIs (Claude, Gemini, Buffer, Meta Graph). When those APIs change, this code will break, and you will fix it.
+- **Not a managed product.** There is no SLA, no roadmap, and no guarantee of compatibility with future versions of the upstream APIs (Claude, Gemini, Buffer, Meta Graph). When those APIs change, the community fixes it. See [CONTRIBUTING.md](./CONTRIBUTING.md) for open maintainer roles.
 
-If you need a maintained, hosted equivalent, this is not it.
+If you need a managed, hosted equivalent, this is not it.
 
 ---
 
@@ -66,6 +68,19 @@ When you're ready to use real content, follow the [Quick start](#quick-start) be
 
 ---
 
+## Visual proof
+
+> Screenshots and a demo GIF will live here once captured. See [`docs/assets/README.md`](./docs/assets/README.md) for what's planned and how to capture them.
+
+<!-- Once assets are captured, replace this block with:
+![Pipeline demo](./docs/assets/pipeline-demo.gif)
+![Review UI](./docs/assets/review-ui.png)
+
+*Left: `npm run demo` running end-to-end. Right: the review UI at `localhost:3000` showing a composed carousel ready to approve.*
+-->
+
+---
+
 ## Quick start
 
 ```bash
@@ -103,6 +118,19 @@ npm run review
 npm run push-approved
 ```
 
+### Docker quick start
+
+If you prefer containers, a `docker-compose.yml` is included with Puppeteer's full Chromium dependency stack pre-configured:
+
+```bash
+cp .env.example .env          # fill in your API keys
+cp -r config.example config   # copy the example brand config
+docker compose up review-ui   # starts the review UI on localhost:3000
+docker compose run pipeline npm run demo  # run the demo in the container
+```
+
+See `Dockerfile` and `docker-compose.yml` in the project root for the full service definitions.
+
 You will not get publishable output on the first run. The brand voice, prompt, and tripwires need iteration.
 
 ## Bringing your own brand
@@ -122,6 +150,17 @@ config/
 │   └── content-gen.md      # the content-generation prompt (templated)
 └── items.json              # your source bank (replaces facts/upf-facts.json)
 ```
+
+The `config.example/templates/` directory ships with four templates:
+
+| Template | Use case |
+|---|---|
+| `default` | General-purpose 10-slide structure (research, findings, explainers) |
+| `data-scientist` | Quantitative content — earnings reports, benchmarks, survey data |
+| `minimalist` | Dark-mode tech aesthetic — developer tools, infrastructure announcements |
+| `b2b-brand` | Enterprise/professional services — consulting insights, industry reports |
+
+Add your own by creating a new `.md` file in `config/templates/` and referencing it from the `template` field of a source item. No code changes needed.
 
 The pipeline has no opinion about your domain. If you write health content, the tripwires file blocks unattributed disease claims. If you write financial content, it blocks "guaranteed return" language. If you write recipes, it might be empty. You decide what's dangerous.
 
@@ -149,17 +188,16 @@ By using this software, you accept it AS-IS without warranty of any kind. See LI
 
 ## Contributing
 
-This project is **not maintained**. Pull requests will not be reviewed and issues will not be answered. You are welcome to:
+This project is seeking community maintainers. See [CONTRIBUTING.md](./CONTRIBUTING.md) for:
+- Open maintainer roles (API Compatibility, TypeScript/Node.js, Puppeteer/Composition, Template Library, Documentation)
+- How to submit bug reports and pull requests
+- Code conventions and what the project will not accept
 
-- Fork and modify under the Apache 2.0 license terms.
-- Open issues if it helps you organize your own thinking — but expect no response.
-- Reference this code in your own projects, with attribution as required by the license.
-
-If you want to keep building on this in public, fork it and maintain your fork. That fork can be the actively-maintained version of this idea.
+Apache 2.0 — fork freely, contribute back if you find it useful.
 
 ## Security
 
-If you find a vulnerability and want to report it responsibly: there is no email to write to. The repository is unmaintained. If the vulnerability would affect downstream users (e.g. a tripwire bypass or an injection vector in the Puppeteer layer), open an issue describing it publicly so other forks can patch their copies.
+If you find a vulnerability: open a GitHub issue describing it. For vulnerabilities that could affect downstream users (tripwire bypass, injection vector in the Puppeteer layer), a public issue is appropriate so other forks can patch their copies.
 
 Do not commit `.env`, API keys, or any other secrets. The `.gitignore` excludes them; verify before pushing.
 

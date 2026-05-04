@@ -1,35 +1,42 @@
 {
   "$schema": "../../docs/schemas/tripwires.schema.json",
-  "_comment": "Phrases the tripwire checker bans from generated copy. Each entry is matched against every slide body and the caption. A single match fails the run. Replace these placeholder categories with categories that fit your domain.",
+  "_comment": "Phrases the tripwire checker bans from generated copy. Each entry is matched against every slide body and the caption. A single match fails the run. Replace or extend these categories for your domain.",
 
   "version": "1.0.0",
 
   "categories": [
     {
-      "id": "example_category_1",
-      "description": "Replace this category. Common examples: unattributed health claims, financial guarantees, age-targeted marketing language, regulated-product claims (alcohol, supplements, medical devices).",
-      "rationale": "Why this category exists — what real-world risk you're avoiding. The review UI shows this rationale when a tripwire fires, so write it for your future self.",
+      "id": "financial_guarantees",
+      "description": "Language that implies guaranteed investment returns, risk-free outcomes, or directional market predictions. Required for any brand publishing financial or investment-adjacent content.",
+      "rationale": "Regulatory risk under SEC and FCA guidelines. Any implication of guaranteed returns or risk-free outcomes constitutes unlicensed investment advice. Even casual phrasing like 'will outperform' can trigger compliance review. The cost of a false positive (rewriting one slide) is zero compared to the cost of a compliance incident.",
       "phrases": [
-        {
-          "match": "literal",
-          "value": "example banned phrase"
-        },
-        {
-          "match": "regex",
-          "value": "\\b(another|alternate)\\s+pattern\\b",
-          "flags": "i"
-        }
+        { "match": "literal", "value": "guaranteed return" },
+        { "match": "literal", "value": "guaranteed returns" },
+        { "match": "literal", "value": "risk-free" },
+        { "match": "literal", "value": "risk free" },
+        { "match": "literal", "value": "buy now" },
+        { "match": "literal", "value": "buy the dip" },
+        { "match": "literal", "value": "can't lose" },
+        { "match": "literal", "value": "cannot lose" },
+        { "match": "literal", "value": "sure thing" },
+        { "match": "regex", "value": "\\bwill\\s+(outperform|beat\\s+the\\s+market|double|triple|10x)\\b", "flags": "i" },
+        { "match": "regex", "value": "\\b(100%|certain(ly)?|definite(ly)?)\\s+(return|gain|profit|growth)\\b", "flags": "i" },
+        { "match": "regex", "value": "\\bnot\\s+(financial|investment)\\s+advice\\b", "flags": "i" },
+        { "match": "regex", "value": "\\bprice\\s+target\\s+of\\b", "flags": "i" }
       ]
     },
     {
-      "id": "example_category_2",
-      "description": "A second category, demonstrating how to group related bans.",
-      "rationale": "Different rationale for a different risk.",
+      "id": "unattributed_health_claims",
+      "description": "Health outcome claims that lack attribution to a named source. Catches copy that implies causation without a cited study or clinical body.",
+      "rationale": "FTC guidelines require that health claims in marketing be substantiated and attributed. 'Studies show' without a named source is unsubstantiated. The pipeline sanitizes source items to eliminate this at input, but the model can re-introduce it from training data. This tripwire is the last line of defense.",
       "phrases": [
-        {
-          "match": "literal",
-          "value": "yet another banned phrase"
-        }
+        { "match": "literal", "value": "studies show" },
+        { "match": "literal", "value": "research shows" },
+        { "match": "literal", "value": "science says" },
+        { "match": "literal", "value": "proven to" },
+        { "match": "literal", "value": "clinically proven" },
+        { "match": "regex", "value": "\\bhas\\s+been\\s+(shown|proven|demonstrated)\\s+to\\s+(cure|treat|prevent|reverse)\\b", "flags": "i" },
+        { "match": "regex", "value": "\\b(cure|treat|prevent|reverse)\\s+(cancer|diabetes|heart disease|depression|anxiety|obesity)\\b", "flags": "i" }
       ]
     }
   ],

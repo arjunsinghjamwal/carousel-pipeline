@@ -14,6 +14,9 @@
  */
 import "dotenv/config";
 import { parseArgs } from "node:util";
+import { mkdirSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
 import { getDb, closeDb } from "../src/lib/db.js";
 import { loadItemBank } from "../src/lib/config-loader.js";
 import { PipelineError } from "../src/lib/errors.js";
@@ -69,6 +72,31 @@ async function runItem(item: SourceItem): Promise<void> {
       return;
     }
     draft = isMock ? mockSlideDraft(item) : await generateContent(item);
+    if (isMock) {
+      // generateContent writes slides.json + metadata.json; mock mode skips it,
+      // so write both here so the review server can find the draft.
+      const draftDir = path.join("drafts", item.id);
+      mkdirSync(draftDir, { recursive: true });
+      await Promise.all([
+        writeFile(
+          path.join(draftDir, "slides.json"),
+          JSON.stringify(draft, null, 2),
+          "utf8"
+        ),
+        writeFile(
+          path.join(draftDir, "metadata.json"),
+          JSON.stringify({
+            item_id: item.id,
+            pipeline_version: "1.0.0",
+            created_at: new Date().toISOString(),
+            model: "mock",
+            generation_attempts: 1,
+            tripwire_checks: { passed: true, violations: [] },
+          }, null, 2),
+          "utf8"
+        ),
+      ]);
+    }
     logRun("content", "completed");
   } catch (err) {
     const msg = err instanceof PipelineError ? err.message : String(err);
