@@ -706,7 +706,7 @@ async function main() {
 
   // ── Run phases ──────────────────────────────────────────────────────────────
   const dotenvDone    = await phase0Dotenv();
-  const brandCopDone  = await phase12BrandCopyColors();
+  const brandCopyDone = await phase12BrandCopyColors();
   const voiceDone     = await phase3VoiceWizard();
   const tripwiresDone = await phase4Tripwires();
   const itemsAdded    = await phase5SourceItems();
@@ -723,7 +723,7 @@ async function main() {
   // ── Phase 6: summary + first run ───────────────────────────────────────────
   await phase6Checklist({
     dotenv: dotenvDone,
-    brandCopy: brandCopDone,
+    brandCopy: brandCopyDone,
     voice: voiceDone,
     tripwires: tripwiresDone,
     itemsAdded,

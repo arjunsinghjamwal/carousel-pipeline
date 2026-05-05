@@ -22,5 +22,11 @@
     "#topic",
     "#niche"
   ],
-  "_hashtags_comment": "Default hashtags appended to every caption. The content-gen prompt may add 1-2 item-specific hashtags. Keep total ≤5 per current Instagram algorithm guidance."
+  "_hashtags_comment": "Default hashtags appended to every caption. The content-gen prompt may add 1-2 item-specific hashtags. Keep total ≤5 per current Instagram algorithm guidance.",
+
+  "example_attributions": {
+    "correct": "A 2024 longitudinal cohort study (Smith et al., NEJM) found that...",
+    "wrong": "Our research shows that..."
+  },
+  "_attributions_comment": "Example attribution phrasings used in the content-gen prompt as few-shot guidance. 'correct' shows the expected citation style; 'wrong' shows what to avoid. Replace with domain-appropriate examples for your brand."
 }

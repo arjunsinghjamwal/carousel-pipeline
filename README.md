@@ -78,13 +78,6 @@ When you're ready to use real content, follow the [Quick start](#quick-start) be
 
 ![Inline slide editing](docs/assets/review-ui-editing.png)
 
-<!-- Once assets are captured, replace this block with:
-![Pipeline demo](./docs/assets/pipeline-demo.gif)
-![Review UI](./docs/assets/review-ui.png)
-
-*Left: `npm run demo` running end-to-end. Right: the review UI at `localhost:3000` showing a composed carousel ready to approve.*
--->
-
 ---
 
 ## Quick start
@@ -93,20 +86,20 @@ When you're ready to use real content, follow the [Quick start](#quick-start) be
 # 1. Install
 npm install
 
-# 2. Copy the example configuration and edit for your brand
-cp -r config.example config
-# Edit config/brand/voice.md, config/brand/tokens.json, config/brand/tripwires.json
-# Add your source items to config/items.json
+# 2. Run the setup wizard — brand config, API keys, source items (~10 minutes)
+npm run setup
+# Prefer to configure manually? Copy the example config instead:
+#   cp -r config.example config && cp .env.example .env
+#   Then edit config/brand/ files and add your source items to config/items.json
 
-# 3. Set up secrets
-cp .env.example .env
-# Fill in ANTHROPIC_API_KEY, GOOGLE_API_KEY, BUFFER_ACCESS_TOKEN, META_GRAPH_TOKEN
-
-# 4. Initialize the database
+# 3. Initialize the database
 npm run db:init
 
-# 5. Generate a single carousel end-to-end (dry run, no publish)
-npm run pipeline -- --item item-001 --dry-run
+# 4. Import your source items
+npm run items:seed
+
+# 5. Generate a single carousel end-to-end
+npm run pipeline -- --item item-001
 
 # 6. Open the review UI
 npm run review
@@ -114,12 +107,9 @@ npm run review
 
 # 7. Publish approved carousels to Buffer
 #
-# BEFORE running this step, you must implement getMediaUrls() in
-# scripts/push-approved.ts. Buffer cannot accept file uploads — it fetches
-# media from public URLs at publish time. The function currently throws with
-# a clear error. Replace it with your own upload logic (S3, GCS, R2, CDN, etc.)
-# and return the public URLs for each slide PNG.
-#
+# BEFORE running this step, implement getMediaUrls() in scripts/push-approved.ts.
+# Buffer fetches media from public URLs — replace the stub with your upload logic
+# (S3, GCS, R2, CDN, etc.) and return the public URLs for each slide PNG.
 # This is the only part of the pipeline that requires user-written code.
 npm run push-approved
 ```

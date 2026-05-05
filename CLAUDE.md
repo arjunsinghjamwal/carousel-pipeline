@@ -10,7 +10,7 @@ An automated pipeline that turns a curated bank of structured source items into 
 
 Six stages: `items → content → images → composition → review → publish → metrics`. Each stage writes to disk and is independently replayable.
 
-This is an **unmaintained open-source framework**. The user has cloned it for their own project. Brand voice, source material, tripwires, and templates all live in `config/` — never in `src/`.
+This is an **open-source community framework**. The user has cloned it for their own project. Brand voice, source material, tripwires, and templates all live in `config/` — never in `src/`.
 
 ---
 
@@ -212,7 +212,7 @@ If you change commands in `package.json`, update this section. Out-of-date comma
 1. Edit `config/brand/voice.md`. That's the source of truth.
 2. The prompt at `config/prompts/content-gen.md` reads it at runtime, so no rebuild needed.
 3. If voice change affects what should be banned, also update `config/brand/tripwires.json`.
-4. Run the eval suite (`npm run test:prompt-eval`) to check that prompt changes don't regress.
+4. Run `npm test` to check that prompt changes don't regress.
 
 ### "A source item has been retracted or invalidated"
 
@@ -274,4 +274,4 @@ If you change commands in `package.json`, update this section. Out-of-date comma
 
 ---
 
-*This file is part of an unmaintained open-source framework. Edit it freely for your own fork — it's only useful if it's current.*
+*This file is part of an open-source community framework. Edit it freely for your own fork — it's only useful if it's current.*
