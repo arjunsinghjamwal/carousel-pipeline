@@ -70,7 +70,13 @@ When you're ready to use real content, follow the [Quick start](#quick-start) be
 
 ## Visual proof
 
-> Screenshots and a demo GIF will live here once captured. See [`docs/assets/README.md`](./docs/assets/README.md) for what's planned and how to capture them.
+**Review dashboard** — approve, reject, or edit any slide before it goes to Buffer.
+
+![Review dashboard](docs/assets/review-ui.png)
+
+**Inline editing** — click any field to edit copy directly in the browser. Changes are saved and re-composed without re-running Claude or Gemini.
+
+![Inline slide editing](docs/assets/review-ui-editing.png)
 
 <!-- Once assets are captured, replace this block with:
 ![Pipeline demo](./docs/assets/pipeline-demo.gif)
